@@ -2,7 +2,7 @@
 
 ###Introduction
 ---
-Use data-draven approach to beautify facial attractiveness. 
+Use data-driven approach to beautify facial attractiveness. 
 
 
 

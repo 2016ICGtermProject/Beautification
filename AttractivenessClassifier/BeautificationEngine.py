@@ -30,7 +30,7 @@ class BE:
         self.net = copy.copy(net)
         self.mypath = copy.copy(mypath)
         self.imgDim = copy.copy(imgDim)
-        self.american = copy.copy(american)
+        self.american = copy.copy(american) #image file names
         self.korean = copy.copy(korean)
         self.plastic = copy.copy(plastic)
         self.image_edges = []
@@ -101,6 +101,19 @@ class BE:
         return  [i / pow(t,0.5) for i in edgesvector] #每次都除以面積開根號 for normalize
         #return edgesvector
 
+    def getCorrespondingLandmark(self, landmarks):
+        correspondingLandmark = []
+        for i in range(len(self.image_edges)):
+            j = 0
+            while j < i:
+                if self.image_edges[i][j]==1:
+                    correspondingLandmark.append([(i),(j)])
+                    #edgesvector.append(pow(pow(landmarks[i][0]-landmarks[j][0],2)+pow(landmarks[i][1]-landmarks[j][1],2),0.5))
+                    #t += pow(pow(landmarks[i][0]-landmarks[j][0],2)+pow(landmarks[i][1]-landmarks[j][1],2),0.5)
+                j+=1 
+        return correspondingLandmark
+        
+        
     def get_triangle_list_from_data(self,path):#reload data and get landmark with triangulation 
         o = open(path)
         str = o.readline()
@@ -178,41 +191,48 @@ class BE:
         return t,total
 
     def knn(self,cl,imagepath,k):
+        start = 49
+        end = 0
         f = open(imagepath)
-        image_edg = getedge(68)
-        lm = getlandmark(imagepath)
-        vectort = getdistancevector(lm,image_edg,imagepath)
+        lm = self.getlandmark(imagepath)
+        vectort = self.getdistancevector(lm,imagepath)
         w = {}
         distance_v = {}
         t = 0
         for i in range(len(self.american)):
             if i<start or i>end:
-                lm = getlandmark(self.mypath+'/american/'+self.american[i])
-                distance_v[str(t)] = getdistancevector(lm,image_edg,self.mypath+'/american/'+self.american[i])
-                #print cl.predict([distance_v[str(t)]])[0]
-                pred = 0.2
-                if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                lm = self.getlandmark(self.mypath+'/american/'+self.american[i])
+                distance_v[str(t)] = self.getdistancevector(lm,self.mypath+'/american/'+self.american[i])
+                #pred = 0.2
+                #if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                pred = 1.0*int(cl.predict([distance_v[str(t)]])[0])
+
                 sub_distance = np.abs(map(sub,vectort,distance_v[str(t)]))
                 if min(sub_distance)==0: w[str(t)] = 0
                 else: w[str(t)] = np.divide(pred,np.array(sub_distance))
                 t+=1
         for i in range(len(self.korean)):
             if i<start or i>end:
-                lm = getlandmark(self.mypath+'/korean/'+self.korean[i])
-                pred = 0.2
-                distance_v[str(t)] = getdistancevector(lm,image_edg,self.mypath+'/korean/'+self.korean[i])
-                if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                lm = self.getlandmark(self.mypath+'/korean/'+self.korean[i])
+                distance_v[str(t)] = self.getdistancevector(lm,self.mypath+'/korean/'+self.korean[i])
+                #pred = 0.2
+                #if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                pred = 1.0*int(cl.predict([distance_v[str(t)]])[0])
                 sub_distance = np.abs(map(sub,vectort,distance_v[str(t)]))
+
                 if min(sub_distance)==0: w[str(t)] = 0
                 else: w[str(t)] = np.divide(pred,np.array(sub_distance))
                 t+=1
         for i in range(len(self.plastic)):
             if i<start or i>end:
-                lm = getlandmark(self.mypath+'/plastic/'+self.plastic[i])
-                pred = 0.2
-                distance_v[str(t)] = getdistancevector(lm,image_edg,self.mypath+'/plastic/'+self.plastic[i])
-                if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                lm = self.getlandmark(self.mypath+'/plastic/'+self.plastic[i])
+                distance_v[str(t)] = self.getdistancevector(lm,self.mypath+'/plastic/'+self.plastic[i])
+                #pred = 0.2
+                #if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
+                pred = 1.0*int(cl.predict([distance_v[str(t)]])[0])
+                #if cl.predict([distance_v[str(t)]])[0]==1 : pred=1
                 sub_distance = np.abs(map(sub,vectort,distance_v[str(t)]))
+
                 if min(sub_distance)==0: w[str(t)] = 0
                 else: w[str(t)] = np.divide(pred,np.array(sub_distance))
                 t+=1
@@ -224,12 +244,11 @@ class BE:
             sum_w += np.array(w[sort_w_index[len(sort_w_index)-i-1]])
         return 1.0*sum_wv/sum_w
 
-
-    def get_image_data_for_changing_distance(self,clf,image_edg):#get trainning data
+    def get_image_data_for_changing_distance(self,clf):#get trainning data
         for i in range(len(self.american)):
-            change_vector = knn(clf,self.mypath+'/american/'+self.american[i],5)
+            change_vector = self.knn(clf,self.mypath+'/american/'+self.american[i],5)
             #print change_vector
             print clf.predict([change_vector])
         for i in range(len(self.plastic)):
-            change_vector = knn(clf,self.mypath+'/plastic/'+self.plastic[i],5)
+            change_vector = self.knn(clf,self.mypath+'/plastic/'+self.plastic[i],5)
             print clf.predict([change_vector])
